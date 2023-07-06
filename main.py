@@ -2,11 +2,11 @@ import random
 import serial
 
 # Open serial port
-ser = serial.Serial('COM3', 9600)
+ser = serial.Serial('COM9', 115200)
 # Close serial port
 ser.close()
 # define the range of values for the gene
-k={0.6,0.6,0.18} #kp,ki,kd được tính toán từ Phương pháp Ziegler
+k=[0.6,0.6,0.18] #kp,ki,kd được tính toán từ Phương pháp Ziegler
 alpha=0.1#xem dinh nghia ampha betal trong file word giới thiệu
 beta=10
 
