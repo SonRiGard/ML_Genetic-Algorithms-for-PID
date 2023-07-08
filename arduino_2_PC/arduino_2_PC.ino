@@ -20,7 +20,7 @@
 // //count=count+1;
 //       //delay(1);
 // //}
-
+/*
 float kp,ki,kd;
 int flag_new_value = 0;
 float temp;
@@ -44,6 +44,26 @@ void loop() {
     float sum = kd+1;
     Serial.print(sum);
   }
+}
+*/
+
+float x=0,y=0,z=0;
+
+void setup() {
+  Serial.begin(9600);
+  Serial.setTimeout(1);
+}
+
+void loop() {
+  while (!Serial.available());
+  x = Serial.readString().toFloat();
+  Serial.print(x);
+  while (!Serial.available());
+  y = Serial.readString().toFloat();
+  Serial.print(y);
+  while (!Serial.available());
+  z = Serial.readString().toFloat();
+  Serial.print(x + y + z);
 }
 
 
