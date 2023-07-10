@@ -1,8 +1,10 @@
 import random
 import serial
+import time
+
 
 # Open serial port
-ser = serial.Serial('COM9', 115200)
+ser = serial.Serial(port='COM3', baudrate=115200, timeout=1)
 # Close serial port
 ser.close()
 # define the range of values for the gene
@@ -20,41 +22,69 @@ def create_population(pop_size):
 
 # fitness function - minimize the error
 def fitness(individual, target):
-    # thêm lệnh để gởi đến vi điều khiển để (đồng bộ với GA) bắt đầu quá trình chạy test PID 
-    #---------------------------------------------
+        #---------------------------------------------
     Kp, Ki, Kd = individual
-    ser.writelines(str(Kp)+","+str(Ki)+","+str(Kd))
-    J1=0
-    J2=0
-    J3=0
-    N=1
+    start_time = sent_Kpid(Kp,Ki,Kd)
     #Lệnh vòng lặp điều kiện cho đến khi kết thúc 
     #Đợi cho đến khi nhận tín hiệu start từ vdk(để vdk chuẩn bị cho quá trình test pid cho hệ số này)
-    while ser.readline().strip() == b'start':
-        pass
-    error=t=dt=J1=J2=J3=0
-
-    #cần thêm hàm try nếu serial lỗi và nhận kí tự sai(không phải số)
-    #
-    #Vòng lặp tính lỗi theo thời gian
-    while ser.readline().strip() != 'stop' :
-    # Read data from serial port data[0] : error; data[1] : time; data[2] : dt
-        data_read_serial = ser.readline() # Read one line of data from serial port
-
-        data=data_read_serial.split(",")
-
-        error=float(data[0].decode().strip())
-        t = float(data[1].decode().strip())
-        dt= float(data[2].decode().strip())
-
-        J1=abs(error)*dt#IAE
-        J2=t*abs(error)*dt#IATE
-        J3=1/N*(error*error)#MSE
+    result = simulate_pid(3,start_time,2,3,4)
         #có thể thay đổi trọng số của các J1, J2, J3 bằng cách nhân với một hệ số nhất định
         # ex : J=0.3*J1+0.3*J2+0.1*J3
-        J=J1+J2+J3
-    return J
+    return result
 
+def sent_Kpid (ukp,uki,ukd):#send value Kpid to microcontroller in one time
+                            #return start time of current process
+    time.sleep(2)
+    print("seding kp : ...")
+    ser.write(bytes(str(ukp)+"\n", 'utf-8'))
+    time.sleep(0.1)
+    print("sent kp!")
+    
+    print("seding kI : ...")
+    ser.write(bytes(str(uki)+"\n", 'utf-8'))
+    time.sleep(0.1)
+    print("sent ki!")
+        
+    print("seding kd : ...")
+    ser.write(bytes(str(ukd)+"\n", 'utf-8'))
+    print("sent kp!")
+    time.sleep(0.1)
+
+    ACK_start_cur_pid=[]
+    while (ACK_start_cur_pid[1] != "111"):
+        ACK_start_cur_pid =  ser.readline().decode().rstrip().split(",")
+    print(ACK_start_cur_pid)
+    return ACK_start_cur_pid[0]
+    
+def simulate_pid (N_time_out,time_start,a,b,c):#a,b,c : scale factor of functions IAE,IATE,MSE
+    t=0
+    J1=J2=J3=J=0
+    t = time_start
+    N=0
+    Time_out = 0
+    while (1):
+    # ser.reset_input_buffer()
+        N+=1
+        Rx_data=ser.readline()
+        if Rx_data == '':
+            Time_out += 1
+        print(Rx_data)
+        # print(data[0]+data[1]+data[2])
+        data = Rx_data.decode().rstrip().split(',') 
+        pre_time=t
+        t=data[1]-time_start
+        dt=t-pre_time
+        if Time_out < N_time_out :
+            if len(data) == 3:
+                J1+=abs(data[0])*dt#IAE
+                J2+=t*abs(data[0])*dt#IATE
+                J3+=1/N*(data[0]*data[0])#MSE
+                J+=a*J1+b*J2+c*J3        
+                if data[2] == "222":#ACk stop process
+                    break#end of while()
+        else :
+            break
+    return J1,J2,J3,J
 # selection function - tournament selection
 def tournament_selection(population, k, target):
     selected = []
@@ -81,10 +111,6 @@ def uniform_mutation(individual):
     individual[gene_index] = random.uniform(k[gene_index]*alpha,k[gene_index]*beta)
     return individual
 
-# simulate PID controller and return the error
-def simulate_pid(Kp, Ki, Kd):
-    # TODO: implement PID controller simulation
-    return 0
 
 # genetic algorithm
 def genetic_algorithm(target, pop_size, k, num_generations, mutation_prob):
@@ -131,6 +157,8 @@ POPULATION_SIZE = 100
 K = 5 # tournament selection size
 NUM_GENERATIONS = 50
 MUTATION_PROB = 0.05
+ALL_RESULTS = []
+ONE_RESULT = []
 best_individual, num_generations = genetic_algorithm(TARGET, POPULATION_SIZE, K, NUM_GENERATIONS, MUTATION_PROB)
 print("The best individual is: ", best_individual)
 print("Number of generations: ", num_generations)
