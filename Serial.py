@@ -54,7 +54,7 @@
 # Importing Libraries
 import serial
 import time
-ser = serial.Serial(port='COM5', baudrate=115200, timeout=.1)
+ser = serial.Serial(port='COM3', baudrate=115200, timeout=1)
 def write_read(x):
     ser.write(bytes(x, 'utf-8'))
     time.sleep(0.10)
@@ -63,27 +63,28 @@ def write_read(x):
     return data
 
 def sent_Kpid (ukp,uki,ukd):
+    time.sleep(2)
     print("seding kp : ...")
-    num = input("Enter a number: ") # Taking input from user
-    ser.write(bytes(str(ukp), 'utf-8'))
-    time.sleep(0.011)
+    # num = input("Enter a number: ") # Taking input from user
+    ser.write(bytes(str(ukp)+"\n", 'utf-8'))
+    time.sleep(0.1)
     print("sent kp!")
     
     print("seding kI : ...")
-    num = input("Enter a number: ") # Taking input from user
-    ser.write(bytes(str(uki), 'utf-8'))
-    time.sleep(0.011)
+    # num = input("Enter a number: ") # Taking input from user
+    ser.write(bytes(str(uki)+"\n", 'utf-8'))
+    time.sleep(0.1)
     print("sent ki!")
         
     print("seding kd : ...")
-    num = input("Enter a number: ") # Taking input from user
-    ser.write(bytes(str(ukd), 'utf-8'))
-    time.sleep(0.011)
+    # num = input("Enter a number: ") # Taking input from user
+    ser.write(bytes(str(ukd)+"\n", 'utf-8'))
     print("sent kp!")
+    time.sleep(0.1)
     
-    while (True):
-        if(ser.in_waiting != 0):
-            break 
+    # while (True):
+    #     if(ser.in_waiting != 0):
+    #         break 
         
     # ACK_start_cur_pid =  ser.readline().decode().rstrip()
     ACK_start_cur_pid=""
@@ -93,45 +94,52 @@ def sent_Kpid (ukp,uki,ukd):
     return True
     
     
-def process_simulat ():
+def process_simulat (N_time_out):
+    Time_out = 0
+    # ser.reset_input_buffer()
     Rx_data=ser.readline()
+    if Rx_data == '':
+        Time_out += 1
     print(Rx_data)
     # print(data[0]+data[1]+data[2])
     data = Rx_data.decode().rstrip().split(',')
+    print(data[0])  
+   
+    if Time_out < N_time_out :
+        if len(data) == 3:
+            # print(data[0]+data[1]+data[2])
+            # # Data for a three-dimensional line
+            # print(data[0])
+            # print("    ")
+            # print(data[1])
+            # print("\n")
+            
+            if data[2] == "222":#ACk stop process
+                # time.sleep(2)
+                return 0#end of 
+            else:
+                return 1#continued receiver in main function
+    else :
+        return 0
 
-    print(data)
-    if len(data) == 3:
-        # print(data[0]+data[1]+data[2])
-        # # Data for a three-dimensional line
-        print(data[0])
-        print("    ")
-        print(data[1])
-        print("\n")
-        
-        if data[2] == "222":#ACk stop process
-            return 0#end of 
-        else:
-            return 1#continued receiver in main function
-    time.sleep(0.0025)
+    # time.sleep(0.0025)
+
+
 kp = 1
 ki = 1
 kd = 1
 
 
 while True:
-    # value = write_read("1.1")
-    # value = write_read("2.1")
-    # value = write_read("4.1")
-    # print(value) # printing the valued
-
     kp += 1
     ki += 1
     kd += 1
     sent_Kpid(kp,ki,kd)
     while (1):
-        temp = ser.readline()
-        if (process_simulat() == 0):
+        # temp = ser.readline()
+        if (process_simulat(5) == 0):
             break
+
            
     # time.sleep(0.001)
     # data = arduino.readline()
