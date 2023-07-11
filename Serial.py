@@ -64,8 +64,7 @@ while True:
         # temp = ser.readline()
         if (process_simulat(5) == 0):
             break
-
-           
+       
     # time.sleep(0.001)
     # data = arduino.readline()
     # print(data)

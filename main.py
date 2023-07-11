@@ -3,14 +3,18 @@ import serial
 import time
 
 # Open serial port
-ser = serial.Serial(port='COM5', baudrate=115200, timeout=1)
+ser = serial.Serial(port='COM9', baudrate=115200, timeout=1)
 # define the range of values for the gene
 k=[0.6,0.6,0.18] #kp,ki,kd được tính toán từ Phương pháp Ziegler
 alpha=0.1#xem dinh nghia ampha betal trong file word giới thiệu
 beta=10
 K_IAE = 1
 K_IATE = 1
-k_MSE = 1
+K_MSE = 1
+
+ALL_RESULTS = []
+ONE_RESULT = []
+
 # create a random gene with values between ki*ampha and k[i]*betal
 def create_individual():
     return [random.uniform(k[i]*alpha, k[i]*beta) for i in range(3)]
@@ -26,7 +30,7 @@ def fitness(individual):
     start_time = sent_Kpid(Kp,Ki,Kd)
     #Lệnh vòng lặp điều kiện cho đến khi kết thúc 
     #Đợi cho đến khi nhận tín hiệu start từ vdk(để vdk chuẩn bị cho quá trình test pid cho hệ số này)
-    result = simulate_pid(3,start_time,K_IAE,K_IATE,k_MSE)
+    result = simulate_pid(3,start_time,K_IAE,K_IATE,K_MSE)
     return result
 
 def sent_Kpid (ukp,uki,ukd):#send value Kpid to microcontroller in one time
@@ -51,6 +55,7 @@ def sent_Kpid (ukp,uki,ukd):#send value Kpid to microcontroller in one time
     while (ACK_start_cur_pid[1] != "111"):
         ACK_start_cur_pid =  ser.readline().decode().rstrip().split(",")
     print(ACK_start_cur_pid)
+    
     return float(ACK_start_cur_pid[0])
 
 #Run the test and return an individual's results    
@@ -82,8 +87,8 @@ def simulate_pid (N_time_out,time_start,a,b,c):#a,b,c : scale factor of function
                     break#end of while()
         else :
             break
+    ALL_RESULTS.append([J1,J2,J3,J])
     return J1,J2,J3,J
-
 
 # selection function - tournament selection
 def tournament_selection(population, k):
@@ -110,7 +115,6 @@ def uniform_mutation(individual):
     gene_index = random.randint(0, len(individual)-1)
     individual[gene_index] = random.uniform(k[gene_index]*alpha,k[gene_index]*beta)
     return individual
-
 
 # genetic algorithm
 def genetic_algorithm( pop_size, k, num_generations, mutation_prob):
@@ -148,17 +152,16 @@ def genetic_algorithm( pop_size, k, num_generations, mutation_prob):
         print(population[0])
         if best_fitness == 0:
             return population[0], gen
-
+        
+        
     # return best individual and number of generations run
     return population[0], num_generations
 
 # example usage for genetic algorithm
 POPULATION_SIZE = 30
 K = 5 # tournament selection size
-NUM_GENERATIONS = 50
+NUM_GENERATIONS = 10
 MUTATION_PROB = 0.05
-ALL_RESULTS = []
-ONE_RESULT = []
 best_individual, num_generations = genetic_algorithm(POPULATION_SIZE, K, NUM_GENERATIONS, MUTATION_PROB)
 print("The best individual is: ", best_individual)
 print("Number of generations: ", num_generations)
